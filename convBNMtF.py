@@ -20,16 +20,16 @@ B = np.random.rand(m,p)
 S = np.random.rand(p,o)
 C = np.random.rand(o,n)
 '''
-def J_B(A,B,S,C):
+def J_B(A,B,S,C,beta):
 	return B @ S @ C @ C.T @ S.T - A @ C.T @ S.T + beta*B@B.T@B - beta*B
 
-def J_C(A,B,S,C):
+def J_C(A,B,S,C,alpha):
 	return S.T @ B.T @ B @ S @ C - S.T @ B.T @ A + alpha* C @ C.T@ C - alpha*C
 
 def J_S(A,B,S,C):
 	return B.T @ B @ S @ C @ C.T - B.T @ A @C.T
 
-def b_bar(b_ref,jb):
+def b_bar(b_ref,jb,sigma):
 	b = np.copy(b_ref)
 	for x in range(0,b.shape[0]):
 		for y in range(0,b.shape[1]):
@@ -37,7 +37,7 @@ def b_bar(b_ref,jb):
 				b[x,y] = max(b[x,y], sigma)
 	return b
 
-def c_bar(c_ref,jc):
+def c_bar(c_ref,jc, sigma):
 	c = np.copy(c_ref)
 	for x in range(0,c.shape[0]):
 		for y in range(0,c.shape[1]):
@@ -45,7 +45,7 @@ def c_bar(c_ref,jc):
                                 c[x,y] = max(c[x,y], sigma)
 	return c
 
-def s_bar(s_ref,js):
+def s_bar(s_ref,js, sigma):
 	s = np.copy(s_ref)
 	for x in range(0,s.shape[0]):
 		for y in range(0,s.shape[1]):
@@ -66,29 +66,30 @@ def convBNMtF(A,B,S,C,delta,max_iterations):
 	sigma = 1
 	alpha = 0.01
 	beta = 0.01
+	i,e = [], []
 	for iteration in range(max_iterations):
 		delta_B = delta
 		while True:
-			jb = J_B(A,B,S,C)
-			b = b_bar(B, jb)
+			jb = J_B(A,B,S,C,beta)
+			b = b_bar(B, jb, sigma)
 			B = B - np.divide(np.multiply(b,jb), B@S@C@C.T@S.T + beta*b@b.T@b + delta_B)
 			delta_B = delta_B * step
-			new_jb = J_B(A,B,S,C)
+			new_jb = J_B(A,B,S,C,beta)
 			if check(jb, new_jb):
 				break
 		delta_C = delta
 		while True:
-			jc = J_C(A,B,S,C)
-			c = c_bar(C, jc)
+			jc = J_C(A,B,S,C,alpha)
+			c = c_bar(C, jc, sigma)
 			C = C - np.divide(np.multiply(c, jc), S.T@B.T@B@S@c + alpha*c@c.T@c + delta_C)
 			delta_C = delta_C * step
-			new_jc = J_C(A,B,S,C)
+			new_jc = J_C(A,B,S,C, alpha)
 			if check(jc, new_jc):
 				break
 		delta_S = delta
 		while True:
 			js = J_S(A,B,S,C)
-			s = s_bar(S, js)
+			s = s_bar(S, js, sigma)
 			S = S - np.divide(np.multiply(s,js), B.T@B@s@C@C.T + delta_S)
 			delta_S = delta_S * step
 			new_js = J_S(A,B,S,C)
@@ -98,3 +99,6 @@ def convBNMtF(A,B,S,C,delta,max_iterations):
 		error = np.linalg.norm(A - B@S@C, 'fro') ** 2
 		if iteration % 10 == 0:
 			print(error)
+			i.append(iteration)
+			e.append(error)
+	return i,e

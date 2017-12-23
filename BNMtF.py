@@ -17,6 +17,7 @@ C = np.random.rand(o,n)
 '''
 def BNMtF(A,B,S,C,delta,max_iterations):
 	# For loop
+	i,e = [],[]
 	for iteration in range(max_iterations):
 		B_mp = np.divide((A @ C.T @ S.T), (B @ B.T @ A @ C.T @ S.T) + delta)
 		B = np.multiply(B, B_mp)
@@ -31,5 +32,7 @@ def BNMtF(A,B,S,C,delta,max_iterations):
 		error = np.linalg.norm(A - B@S@C ,'fro') ** 2
 		if iteration % 10:
 			print(error)
-
+			i.append(iteration)
+			e.append(error)
+	return i,e
 
